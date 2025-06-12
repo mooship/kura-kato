@@ -1,26 +1,26 @@
 // Copyright 2025 Timothy Brits
-// 
+//
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
 //    You may obtain a copy of the License at
-// 
+//
 //        http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 //    Unless required by applicable law or agreed to in writing, software
 //    distributed under the License is distributed on an "AS IS" BASIS,
 //    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-using RunCat.Properties;
-using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Diagnostics;
-using System.Windows.Forms;
-using System.Resources;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Drawing;
+using System.Resources;
+using System.Windows.Forms;
+using Microsoft.Win32;
+using RunCat.Properties;
 
 namespace RunCat
 {
@@ -75,55 +75,78 @@ namespace RunCat
             Application.ApplicationExit += OnApplicationExit;
             SystemEvents.UserPreferenceChanged += UserPreferenceChanged;
 
-            cpuUsage = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
+            cpuUsage = new PerformanceCounter(
+                "Processor Information",
+                "% Processor Utility",
+                "_Total"
+            );
             _ = cpuUsage.NextValue(); // Discard first value
 
-            runnerMenu = new ToolStripMenuItem("Runner", null, new ToolStripMenuItem[]
-            {
-                new("Cat", null, SetRunner) { Checked = runner.Equals("cat") },
-                new("Parrot", null, SetRunner) { Checked = runner.Equals("parrot") },
-                new("Horse", null, SetRunner) { Checked = runner.Equals("horse") }
-            });
+            runnerMenu = new ToolStripMenuItem(
+                "Runner",
+                null,
+                new ToolStripMenuItem[]
+                {
+                    new("Cat", null, SetRunner) { Checked = runner.Equals("cat") },
+                    new("Parrot", null, SetRunner) { Checked = runner.Equals("parrot") },
+                    new("Horse", null, SetRunner) { Checked = runner.Equals("horse") },
+                }
+            );
 
-            themeMenu = new ToolStripMenuItem("Theme", null, new ToolStripMenuItem[]
-            {
-                new("Default", null, SetThemeIcons) { Checked = manualTheme.Equals("") },
-                new("Light", null, SetLightIcons) { Checked = manualTheme.Equals("light") },
-                new("Dark", null, SetDarkIcons) { Checked = manualTheme.Equals("dark") }
-            });
+            themeMenu = new ToolStripMenuItem(
+                "Theme",
+                null,
+                new ToolStripMenuItem[]
+                {
+                    new("Default", null, SetThemeIcons) { Checked = manualTheme.Equals("") },
+                    new("Light", null, SetLightIcons) { Checked = manualTheme.Equals("light") },
+                    new("Dark", null, SetDarkIcons) { Checked = manualTheme.Equals("dark") },
+                }
+            );
 
             startupMenu = new ToolStripMenuItem("Startup", null, SetStartup)
             {
-                Checked = IsStartupEnabled()
+                Checked = IsStartupEnabled(),
             };
 
-            runnerSpeedLimit = new ToolStripMenuItem("Runner Speed Limit", null, new ToolStripMenuItem[]
-            {
-                new("Default", null, SetSpeedLimit) { Checked = speed.Equals("default") },
-                new("CPU 10%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 10%") },
-                new("CPU 20%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 20%") },
-                new("CPU 30%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 30%") },
-                new("CPU 40%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 40%") }
-            });
+            runnerSpeedLimit = new ToolStripMenuItem(
+                "Runner Speed Limit",
+                null,
+                new ToolStripMenuItem[]
+                {
+                    new("Default", null, SetSpeedLimit) { Checked = speed.Equals("default") },
+                    new("CPU 10%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 10%") },
+                    new("CPU 20%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 20%") },
+                    new("CPU 30%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 30%") },
+                    new("CPU 40%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 40%") },
+                }
+            );
 
             var contextMenuStrip = new ContextMenuStrip(new Container());
-            contextMenuStrip.Items.AddRange(new ToolStripItem[]
-            {
-                runnerMenu,
-                themeMenu,
-                startupMenu,
-                runnerSpeedLimit,
-                new ToolStripSeparator(),
-                new ToolStripMenuItem($"{Application.ProductName} v{Application.ProductVersion}") { Enabled = false },
-                new ToolStripMenuItem("Exit", null, Exit)
-            });
+            contextMenuStrip.Items.AddRange(
+                new ToolStripItem[]
+                {
+                    runnerMenu,
+                    themeMenu,
+                    startupMenu,
+                    runnerSpeedLimit,
+                    new ToolStripSeparator(),
+                    new ToolStripMenuItem(
+                        $"{Application.ProductName} v{Application.ProductVersion}"
+                    )
+                    {
+                        Enabled = false,
+                    },
+                    new ToolStripMenuItem("Exit", null, Exit),
+                }
+            );
 
             notifyIcon = new NotifyIcon
             {
                 Icon = Resources.light_cat_0,
                 ContextMenuStrip = contextMenuStrip,
                 Text = "0.0%",
-                Visible = true
+                Visible = true,
             };
 
             notifyIcon.DoubleClick += HandleDoubleClick;
@@ -156,7 +179,7 @@ namespace RunCat
         {
             const string keyName = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize";
             using var rKey = Registry.CurrentUser.OpenSubKey(keyName);
-            
+
             if (rKey == null || rKey.GetValue("SystemUsesLightTheme") == null)
             {
                 // Default to light if theme cannot be determined
@@ -177,7 +200,7 @@ namespace RunCat
             {
                 "parrot" => 10,
                 "horse" => 14,
-                _ => 5
+                _ => 5,
             };
 
             var list = new List<Icon>(capacity);
@@ -223,7 +246,7 @@ namespace RunCat
                 "cpu 20%" => 50f,
                 "cpu 30%" => 33f,
                 "cpu 40%" => 25f,
-                _ => minCPU
+                _ => minCPU,
             };
         }
 
@@ -278,7 +301,7 @@ namespace RunCat
             startupMenu.Checked = !startupMenu.Checked;
             const string keyName = @"Software\Microsoft\Windows\CurrentVersion\Run";
             using var rKey = Registry.CurrentUser.OpenSubKey(keyName, true);
-            
+
             if (startupMenu.Checked)
             {
                 rKey.SetValue(Application.ProductName, Environment.ProcessPath);
