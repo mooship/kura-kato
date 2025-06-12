@@ -44,7 +44,7 @@ namespace RunCat
     public class RunCatApplicationContext : ApplicationContext
     {
         // --- Constants ---
-        private const int CPU_TIMER_DEFAULT_INTERVAL = 3000;
+        private const int CPU_TIMER_DEFAULT_INTERVAL = 1000;
         private const int ANIMATE_TIMER_DEFAULT_INTERVAL = 200;
 
         // --- Fields ---
