@@ -1,3 +1,5 @@
+[![.NET](https://github.com/mooship/kura-kato/actions/workflows/dotnet.yml/badge.svg)](https://github.com/mooship/kura-kato/actions/workflows/dotnet.yml)
+
 # RunCat for Windows
 
 A cute running cat animation for your Windows taskbar.
