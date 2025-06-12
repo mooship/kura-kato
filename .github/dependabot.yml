@@ -1,8 +1,9 @@
+version: 2
 updates:
-  - package-ecosystem: "dotnet-sdk"
-    directory: "kura-kato"
+  - package-ecosystem: "nuget"
+    directory: "/kura-kato"
     schedule:
-      interval: 'weekly'
-      day: 'saturday'
-      time: '17:00'
-      timezone: 'Africa/Johannesburg'
+      interval: "weekly"
+      day: "saturday"
+      time: "17:00"
+      timezone: "Africa/Johannesburg"
