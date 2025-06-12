@@ -1,4 +1,4 @@
-// Copyright 2020 Takuto Nakamura
+// Copyright 2025 Timothy Brits
 // 
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ namespace RunCat
         [STAThread]
         static void Main()
         {
-            // terminate runcat if there's any existing instance
+            // Ensure only one instance is running
             var procMutex = new System.Threading.Mutex(true, "_RUNCAT_MUTEX", out var result);
             if (!result)
             {
@@ -49,12 +49,12 @@ namespace RunCat
     {
         private const int CPU_TIMER_DEFAULT_INTERVAL = 3000;
         private const int ANIMATE_TIMER_DEFAULT_INTERVAL = 200;
-        private PerformanceCounter cpuUsage;
-        private ToolStripMenuItem runnerMenu;
-        private ToolStripMenuItem themeMenu;
-        private ToolStripMenuItem startupMenu;
-        private ToolStripMenuItem runnerSpeedLimit;
-        private NotifyIcon notifyIcon;
+        private readonly PerformanceCounter cpuUsage;
+        private readonly ToolStripMenuItem runnerMenu;
+        private readonly ToolStripMenuItem themeMenu;
+        private readonly ToolStripMenuItem startupMenu;
+        private readonly ToolStripMenuItem runnerSpeedLimit;
+        private readonly NotifyIcon notifyIcon;
         private string runner = "";
         private int current = 0;
         private float minCPU;
@@ -63,9 +63,8 @@ namespace RunCat
         private string manualTheme = UserSettings.Default.Theme;
         private string speed = UserSettings.Default.Speed;
         private Icon[] icons;
-        private Timer animateTimer = new Timer();
-        private Timer cpuTimer = new Timer();
-
+        private readonly Timer animateTimer = new();
+        private readonly Timer cpuTimer = new();
 
         public RunCatApplicationContext()
         {
@@ -73,76 +72,41 @@ namespace RunCat
             runner = UserSettings.Default.Runner;
             manualTheme = UserSettings.Default.Theme;
 
-            Application.ApplicationExit += new EventHandler(OnApplicationExit);
-
-            SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(UserPreferenceChanged);
+            Application.ApplicationExit += OnApplicationExit;
+            SystemEvents.UserPreferenceChanged += UserPreferenceChanged;
 
             cpuUsage = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
-            _ = cpuUsage.NextValue(); // discards first return value
+            _ = cpuUsage.NextValue(); // Discard first value
 
             runnerMenu = new ToolStripMenuItem("Runner", null, new ToolStripMenuItem[]
             {
-                new ToolStripMenuItem("Cat", null, SetRunner)
-                {
-                    Checked = runner.Equals("cat")
-                },
-                new ToolStripMenuItem("Parrot", null, SetRunner)
-                {
-                    Checked = runner.Equals("parrot")
-                },
-                new ToolStripMenuItem("Horse", null, SetRunner)
-                {
-                    Checked = runner.Equals("horse")
-                }
+                new("Cat", null, SetRunner) { Checked = runner.Equals("cat") },
+                new("Parrot", null, SetRunner) { Checked = runner.Equals("parrot") },
+                new("Horse", null, SetRunner) { Checked = runner.Equals("horse") }
             });
 
             themeMenu = new ToolStripMenuItem("Theme", null, new ToolStripMenuItem[]
             {
-                new ToolStripMenuItem("Default", null, SetThemeIcons)
-                {
-                    Checked = manualTheme.Equals("")
-                },
-                new ToolStripMenuItem("Light", null, SetLightIcons)
-                {
-                    Checked = manualTheme.Equals("light")
-                },
-                new ToolStripMenuItem("Dark", null, SetDarkIcons)
-                {
-                    Checked = manualTheme.Equals("dark")
-                }
+                new("Default", null, SetThemeIcons) { Checked = manualTheme.Equals("") },
+                new("Light", null, SetLightIcons) { Checked = manualTheme.Equals("light") },
+                new("Dark", null, SetDarkIcons) { Checked = manualTheme.Equals("dark") }
             });
 
-            startupMenu = new ToolStripMenuItem("Startup", null, SetStartup);
-            if (IsStartupEnabled())
+            startupMenu = new ToolStripMenuItem("Startup", null, SetStartup)
             {
-                startupMenu.Checked = true;
-            }
+                Checked = IsStartupEnabled()
+            };
 
             runnerSpeedLimit = new ToolStripMenuItem("Runner Speed Limit", null, new ToolStripMenuItem[]
             {
-                new ToolStripMenuItem("Default", null, SetSpeedLimit)
-                {
-                    Checked = speed.Equals("default")
-                },
-                new ToolStripMenuItem("CPU 10%", null, SetSpeedLimit)
-                {
-                    Checked = speed.Equals("cpu 10%")
-                },
-                new ToolStripMenuItem("CPU 20%", null, SetSpeedLimit)
-                {
-                    Checked = speed.Equals("cpu 20%")
-                },
-                new ToolStripMenuItem("CPU 30%", null, SetSpeedLimit)
-                {
-                    Checked = speed.Equals("cpu 30%")
-                },
-                new ToolStripMenuItem("CPU 40%", null, SetSpeedLimit)
-                {
-                    Checked = speed.Equals("cpu 40%")
-                }
+                new("Default", null, SetSpeedLimit) { Checked = speed.Equals("default") },
+                new("CPU 10%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 10%") },
+                new("CPU 20%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 20%") },
+                new("CPU 30%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 30%") },
+                new("CPU 40%", null, SetSpeedLimit) { Checked = speed.Equals("cpu 40%") }
             });
 
-            ContextMenuStrip contextMenuStrip = new ContextMenuStrip(new Container());
+            var contextMenuStrip = new ContextMenuStrip(new Container());
             contextMenuStrip.Items.AddRange(new ToolStripItem[]
             {
                 runnerMenu,
@@ -150,14 +114,11 @@ namespace RunCat
                 startupMenu,
                 runnerSpeedLimit,
                 new ToolStripSeparator(),
-                new ToolStripMenuItem($"{Application.ProductName} v{Application.ProductVersion}")
-                {
-                    Enabled = false
-                },
+                new ToolStripMenuItem($"{Application.ProductName} v{Application.ProductVersion}") { Enabled = false },
                 new ToolStripMenuItem("Exit", null, Exit)
             });
 
-            notifyIcon = new NotifyIcon()
+            notifyIcon = new NotifyIcon
             {
                 Icon = Resources.light_cat_0,
                 ContextMenuStrip = contextMenuStrip,
@@ -165,7 +126,7 @@ namespace RunCat
                 Visible = true
             };
 
-            notifyIcon.DoubleClick += new EventHandler(HandleDoubleClick);
+            notifyIcon.DoubleClick += HandleDoubleClick;
 
             UpdateThemeIcons();
             SetAnimation();
@@ -174,8 +135,10 @@ namespace RunCat
 
             current = 1;
         }
+
         private void OnApplicationExit(object sender, EventArgs e)
         {
+            // Save user settings on exit
             UserSettings.Default.Runner = runner;
             UserSettings.Default.Theme = manualTheme;
             UserSettings.Default.Speed = speed;
@@ -184,49 +147,46 @@ namespace RunCat
 
         private bool IsStartupEnabled()
         {
-            string keyName = @"Software\Microsoft\Windows\CurrentVersion\Run";
-            using (RegistryKey rKey = Registry.CurrentUser.OpenSubKey(keyName))
-            {
-                return (rKey.GetValue(Application.ProductName) != null) ? true : false;
-            }
+            const string keyName = @"Software\Microsoft\Windows\CurrentVersion\Run";
+            using var rKey = Registry.CurrentUser.OpenSubKey(keyName);
+            return rKey?.GetValue(Application.ProductName) != null;
         }
 
         private string GetAppsUseTheme()
         {
-            string keyName = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize";
-            using (RegistryKey rKey = Registry.CurrentUser.OpenSubKey(keyName))
+            const string keyName = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+            using var rKey = Registry.CurrentUser.OpenSubKey(keyName);
+            
+            if (rKey == null || rKey.GetValue("SystemUsesLightTheme") == null)
             {
-                object value;
-                if (rKey == null || (value = rKey.GetValue("SystemUsesLightTheme")) == null)
-                {
-                    Console.WriteLine("Oh No! Couldn't get theme light/dark");
-                    return "light";
-                }
-                int theme = (int)value;
-                return theme == 0 ? "dark" : "light";
+                // Default to light if theme cannot be determined
+                return "light";
             }
+
+            int theme = (int)rKey.GetValue("SystemUsesLightTheme");
+            return theme == 0 ? "dark" : "light";
         }
 
         private void SetIcons()
         {
-            string prefix = 0 < manualTheme.Length ? manualTheme : systemTheme;
+            // Set icons based on runner and theme
+            string prefix = manualTheme.Length > 0 ? manualTheme : systemTheme;
             ResourceManager rm = Resources.ResourceManager;
-            // default runner is cat
-            int capacity = 5;
-            if (runner.Equals("parrot"))
+
+            int capacity = runner switch
             {
-                capacity = 10;
-            } 
-            else if (runner.Equals("horse")) 
-            {
-                capacity = 14;
-            }
-            List<Icon> list = new List<Icon>(capacity);
+                "parrot" => 10,
+                "horse" => 14,
+                _ => 5
+            };
+
+            var list = new List<Icon>(capacity);
             for (int i = 0; i < capacity; i++)
             {
                 list.Add((Icon)rm.GetObject($"{prefix}_{runner}_{i}"));
             }
-            icons = list.ToArray();
+
+            icons = [.. list];
         }
 
         private void UpdateCheckedState(ToolStripMenuItem sender, ToolStripMenuItem menu)
@@ -240,7 +200,7 @@ namespace RunCat
 
         private void SetRunner(object sender, EventArgs e)
         {
-            ToolStripMenuItem item = (ToolStripMenuItem)sender;
+            var item = (ToolStripMenuItem)sender;
             UpdateCheckedState(item, runnerMenu);
             runner = item.Text.ToLower();
             SetIcons();
@@ -256,21 +216,20 @@ namespace RunCat
 
         private void SetSpeed()
         {
-            if (speed.Equals("default"))
-                return;
-            else if (speed.Equals("cpu 10%"))
-                minCPU = 100f;
-            else if (speed.Equals("cpu 20%"))
-                minCPU = 50f;
-            else if (speed.Equals("cpu 30%"))
-                minCPU = 33f;    
-            else if (speed.Equals("cpu 40%"))
-                minCPU = 25f;   
+            // Set minimum CPU interval based on speed setting
+            minCPU = speed switch
+            {
+                "cpu 10%" => 100f,
+                "cpu 20%" => 50f,
+                "cpu 30%" => 33f,
+                "cpu 40%" => 25f,
+                _ => minCPU
+            };
         }
 
         private void SetSpeedLimit(object sender, EventArgs e)
         {
-            ToolStripMenuItem item = (ToolStripMenuItem)sender;
+            var item = (ToolStripMenuItem)sender;
             UpdateCheckedState(item, runnerSpeedLimit);
             speed = item.Text.ToLower();
             SetSpeed();
@@ -278,15 +237,18 @@ namespace RunCat
 
         private void UpdateThemeIcons()
         {
-            if (0 < manualTheme.Length)
+            // Update icons if theme has changed
+            if (manualTheme.Length > 0)
             {
                 SetIcons();
                 return;
             }
             string newTheme = GetAppsUseTheme();
-            if (systemTheme.Equals(newTheme)) return;
-            systemTheme = newTheme;
-            SetIcons();
+            if (!systemTheme.Equals(newTheme))
+            {
+                systemTheme = newTheme;
+                SetIcons();
+            }
         }
 
         private void SetLightIcons(object sender, EventArgs e)
@@ -302,26 +264,28 @@ namespace RunCat
             manualTheme = "dark";
             SetIcons();
         }
+
         private void UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
-            if (e.Category == UserPreferenceCategory.General) UpdateThemeIcons();
+            if (e.Category == UserPreferenceCategory.General)
+            {
+                UpdateThemeIcons();
+            }
         }
 
         private void SetStartup(object sender, EventArgs e)
         {
             startupMenu.Checked = !startupMenu.Checked;
-            string keyName = @"Software\Microsoft\Windows\CurrentVersion\Run";
-            using (RegistryKey rKey = Registry.CurrentUser.OpenSubKey(keyName, true))
+            const string keyName = @"Software\Microsoft\Windows\CurrentVersion\Run";
+            using var rKey = Registry.CurrentUser.OpenSubKey(keyName, true);
+            
+            if (startupMenu.Checked)
             {
-                if (startupMenu.Checked)
-                {
-                    rKey.SetValue(Application.ProductName, Process.GetCurrentProcess().MainModule.FileName);
-                }
-                else
-                {
-                    rKey.DeleteValue(Application.ProductName, false);
-                }
-                rKey.Close();
+                rKey.SetValue(Application.ProductName, Environment.ProcessPath);
+            }
+            else
+            {
+                rKey.DeleteValue(Application.ProductName, false);
             }
         }
 
@@ -336,7 +300,11 @@ namespace RunCat
 
         private void AnimationTick(object sender, EventArgs e)
         {
-            if (icons.Length <= current) current = 0;
+            if (icons.Length <= current)
+            {
+                current = 0;
+            }
+
             notifyIcon.Icon = icons[current];
             current = (current + 1) % icons.Length;
         }
@@ -344,34 +312,28 @@ namespace RunCat
         private void SetAnimation()
         {
             animateTimer.Interval = ANIMATE_TIMER_DEFAULT_INTERVAL;
-            animateTimer.Tick += new EventHandler(AnimationTick);
+            animateTimer.Tick += AnimationTick;
         }
 
         private void CPUTickSpeed()
         {
-            if (!speed.Equals("default"))
-            {            
-                float manualInterval = (float)Math.Max(minCPU, interval);
-                animateTimer.Stop();
-                animateTimer.Interval = (int)manualInterval;
-                animateTimer.Start();
-            }
-            else
-            {
-                animateTimer.Stop();
-                animateTimer.Interval = (int)interval;
-                animateTimer.Start();
-            }
+            // Adjust animation speed based on CPU usage or manual setting
+            float intervalToUse = speed.Equals("default") ? interval : Math.Max(minCPU, interval);
+            animateTimer.Stop();
+            animateTimer.Interval = (int)intervalToUse;
+            animateTimer.Start();
         }
 
         private void CPUTick()
         {
-            interval = Math.Min(100, cpuUsage.NextValue()); // Sometimes got over 100% so it should be limited to 100%
-            notifyIcon.Text = $"CPU: {interval:f1}%";
-            interval = 200.0f / (float)Math.Max(1.0f, Math.Min(20.0f, interval / 5.0f));
-            _ = interval;
+            // Update CPU usage and animation interval
+            interval = Math.Min(100, cpuUsage.NextValue());
+            notifyIcon.Text = $"{interval:f1}%";
+            interval = 200.0f / Math.Max(1.0f, Math.Min(20.0f, interval / 5.0f));
+
             CPUTickSpeed();
         }
+
         private void ObserveCPUTick(object sender, EventArgs e)
         {
             CPUTick();
@@ -380,12 +342,13 @@ namespace RunCat
         private void StartObserveCPU()
         {
             cpuTimer.Interval = CPU_TIMER_DEFAULT_INTERVAL;
-            cpuTimer.Tick += new EventHandler(ObserveCPUTick);
+            cpuTimer.Tick += ObserveCPUTick;
             cpuTimer.Start();
         }
-        
-        private void HandleDoubleClick(object Sender, EventArgs e)
+
+        private void HandleDoubleClick(object sender, EventArgs e)
         {
+            // Open Task Manager on double-click
             var startInfo = new ProcessStartInfo
             {
                 FileName = "powershell",
@@ -393,8 +356,8 @@ namespace RunCat
                 Arguments = " -c Start-Process taskmgr.exe",
                 CreateNoWindow = true,
             };
+
             Process.Start(startInfo);
         }
-
     }
 }
